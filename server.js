@@ -4,7 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const colors = require('colors');
 const bodyParser = require('body-parser');
-// error handler
+const { errorHandler } = require('./middlewares/errorHandler');
 const connectDB = require('./config/db');
 const port = process.env.PORT || 5000
 
@@ -18,6 +18,6 @@ app.use(express.urlencoded({extended: false}));
 
 // Routes
 
-// Error handler execution
+app.use(errorHandler);
 
-app.listen(port, _ => console.log(`Server started on port: ${port}` .cyan))
+app.listen(port, _ => console.log(`Server started on port: ${port}` .cyan));
