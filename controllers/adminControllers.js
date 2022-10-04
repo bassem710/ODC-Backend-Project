@@ -32,9 +32,21 @@ const loginAdmin = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc   Get admin data
+// @route  GET /api/admins/:id
+// @access Private (Super admins and owner only)
+const getAdmin = asyncHandler(async (req, res) => {
+    if(req.admin.authority !== "super admin" && req.admin.authority !== "owner") {
+        res.status(400);
+        throw new Error('Not authorized to view admins data');
+    }
+    const data = await Admin.findById(req.params.id);
+    res.status(200).json(data);
+});
+
 // @desc   Get admins data
 // @route  GET /api/admins
-// @access Private (super admin)
+// @access Private (Super admins and owner only)
 const adminsData = asyncHandler(async (req, res) => {
     if(req.admin.authority !== "super admin" && req.admin.authority !== "owner") {
         res.status(400);
@@ -47,7 +59,7 @@ const adminsData = asyncHandler(async (req, res) => {
 
 // @desc   add new admin
 // @route  POST /api/admins
-// @access Private (super admin)
+// @access Private (Super admins and owner only)
 const addAdmin = asyncHandler(async (req, res) => {
     const { authority, firstName, lastName, username, password } = req.body;
     if(!authority || !firstName || !lastName || !username || !password) {
@@ -93,7 +105,7 @@ const addAdmin = asyncHandler(async (req, res) => {
 
 // @desc   Updata an admin data
 // @route  PATCH /api/admins/:id
-// @access Private (super admin)
+// @access Private (Super admins and owner only)
 const updateAdmin = asyncHandler(async (req, res) => {
     // check for admin's role
     if(req.admin.authority !== 'super admin' && req.admin.authority !== 'owner' && req.admin.id !== req.params.id) {
@@ -117,7 +129,7 @@ const updateAdmin = asyncHandler(async (req, res) => {
 
 // @desc   Delete an admin
 // @route  DELETE /api/admins/:id
-// @access Private (super admin)
+// @access Private (Super admins and owner only)
 const deleteAdmin = asyncHandler(async (req, res) => {
     // check for admin's role
     if(req.admin.authority !== 'super admin' && req.admin.authority !== 'owner') {
@@ -146,6 +158,7 @@ module.exports = {
     myData, 
     loginAdmin, 
     addAdmin, 
+    getAdmin,
     adminsData, 
     deleteAdmin, 
     updateAdmin
