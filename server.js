@@ -16,7 +16,7 @@ app.use(express.json());
 app.use(cors());
 app.use(express.urlencoded({extended: false}));
 
-// Routes
+app.use('/api/admins', require("./routes/adminRoutes"));
 
 app.use(errorHandler);
 
