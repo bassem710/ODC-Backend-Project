@@ -29,10 +29,6 @@ const courseSchema = mongoose.Schema({
         type: Array,
         required: [true, "Please add course skills"]
     },
-    prerequisiteSkills:{
-        type: Array,
-        default: []
-    },
     prerequisiteCourses:{
         type: Array,
         default: []
