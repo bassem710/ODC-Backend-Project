@@ -1,18 +1,5 @@
 const mongoose = require('mongoose');
 
-const enrolledStudents = mongoose.Schema({
-    id: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: [true, "Please add enrolled student ID"],
-        ref: 'Student'
-    },
-    progress: {
-        type: String,
-        enum: ["Not Invited", "Criteria Not Met", "Passed Interview", "Failed Interview", "Invited"],
-        default: "Not Invited"
-    }
-});
-
 const courseSchema = mongoose.Schema({
     admin: {
         type: mongoose.Schema.Types.ObjectId,
@@ -51,7 +38,7 @@ const courseSchema = mongoose.Schema({
         default: []
     },
     enrolledStudents: {
-        type: [enrolledStudents],
+        type: [{type: mongoose.Schema.Types.ObjectId, ref: 'Student'}],
         default: []
     },
     partner: {
@@ -72,11 +59,13 @@ const courseSchema = mongoose.Schema({
         type: String,
         required: [true, "Please add course location"]
     },
-    progress: {
-        type: Number,
-        min: 0,
-        max: 100,
-        default: 0
+    startDate: {
+        type: Date,
+        required: [true, "Please add course start date"]
+    },
+    endDate: {
+        type: Date,
+        required: [true, "Please add course end date"]
     },
     visited: {
         type: [Date],

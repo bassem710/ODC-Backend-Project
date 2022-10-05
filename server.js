@@ -18,6 +18,7 @@ app.use(express.urlencoded({extended: false}));
 
 app.use('/api/admins', require("./routes/adminRoutes"));
 app.use('/api/courses', require("./routes/courseRoutes"));
+app.use('/api/students', require("./routes/studentRoutes"));
 
 app.use(errorHandler);
 
