@@ -1,7 +1,9 @@
 const asyncHandler = require('express-async-handler');
-const { exists } = require('../models/courseModel');
+const { exists, findByIdAndUpdate, findOneAndUpdate, find } = require('../models/courseModel');
 const Course = require('../models/courseModel');
 const Student = require('../models/studentModel');
+const Partner = require('../models/partnerModel');
+const e = require('express');
 
 // @desc   Get all courses data
 // @route  GET /api/courses/
@@ -68,8 +70,33 @@ const addCourse = asyncHandler(async (req, res) => {
         endDate,
         courseProgress: 0
     });
+    // partner
+    const partnerData = await Partner.findOne({name: partner});
+    // check for partner
+    let partnerUpdated;
+    if(!partnerData){
+        partnerUpdated = await Partner.create({
+            name: partner,
+            courses: [course._id],
+            moneyPaid: moneyPaid,
+            moneyToPay: toPay
+        });
+    } else {
+        const updatedMoneyPaid = partnerData.moneyPaid + moneyPaid;
+        const updatedMoneyToPay = partnerData.moneyToPay + toPay;
+        const updatedCourses = [...partnerData.courses, course._id]; 
+        const updatedData = { courses: updatedCourses, moneyPaid: updatedMoneyPaid, moneyToPay: updatedMoneyToPay}
+        partnerUpdated = await Partner.findOneAndUpdate({name: partner}, updatedData);
+    }
+    // check for updated partner
+    if(!partnerUpdated){
+        res.status(400);
+        throw new Error('Partner data cannot be updated');
+    }
+    // check for course
     if(course){
         res.status(200).json({
+            _id: course._id,
             admin: course.admin,
             code: course.code,
             name: course.name,
@@ -220,17 +247,21 @@ const moneyData = asyncHandler( async (req, res) => {
         res.status(400);
         throw new Error("There is no courses found");
     }
+    // partners money data
+    const partnersMoneyData = await Partner.find({});
+    // ODC money data
     let moneyPaid = 0;
     let moneyToPay = 0;
-    courses.forEach( course => {
-        moneyPaid += course.moneyPaid;
-        moneyToPay += course.toPay;
-    } );
+    partnersMoneyData.forEach( one => {
+        moneyPaid += one.moneyPaid;
+        moneyToPay += one.moneyToPay;
+    });
+    // progress for each course
     const data = courses;
     data.forEach( course => {
         course.courseProgress = progressPerentage(course.startDate, course.endDate);
     })
-    res.status(200).json({moneyPaid, moneyToPay, total: moneyPaid+moneyToPay, courses: data});
+    res.status(200).json({moneyPaid, moneyToPay, total: moneyPaid + moneyToPay, partners: partnersMoneyData, courses: data});
 });
 
 // Get course progress percentage function
