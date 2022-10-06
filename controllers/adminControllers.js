@@ -118,8 +118,13 @@ const updateAdmin = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('Admin not found');
     }
+    // check for both levels
+    if(req.admin.authority !== "owner" && admin.authority === "super admin"){
+        res.status(400);
+        throw new Error("Not authorized to update super admin acoount")
+    }
     // check for updated data
-    if(req.admin.id === req.params.id && req.body.authority){
+    if((req.admin.id === req.params.id) && req.body.authority){
         res.status(400);
         throw new Error("Not authorized to change admin's role");
     }
@@ -134,10 +139,20 @@ const deleteAdmin = asyncHandler(async (req, res) => {
     // check for admin's role
     if(req.admin.authority !== 'super admin' && req.admin.authority !== 'owner') {
         res.status(400);
-        throw new Error('Not authorized to delete admin');
+        throw new Error('Not authorized to delete admin account');
     }
     const { id } = req.params;
     const admin = await Admin.findById(id);
+    // check for authority level
+    if(admin.authority === "owner"){
+        res.status(400);
+        throw new Error("Not authorized to delete owner account");
+    }
+    // check for both levels
+    if(req.admin.authority !== "owner" && admin.authority === "super admin"){
+        res.status(400);
+        throw new Error("Not authorized to delete super admin acoount")
+    }
     // check for admin
     if(!admin) {
         res.status(400);
