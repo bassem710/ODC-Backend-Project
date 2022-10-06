@@ -209,6 +209,30 @@ const recommended = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc   Get money details of courses
+// @route  GET /api/courses/money
+// @access Private
+const moneyData = asyncHandler( async (req, res) => {
+    // code name partner location moneyPaid toPay
+    const courses = await Course.find({}, "code name partner location moneyPaid toPay courseProgress  startDate endDate");
+    // check for courses
+    if(!courses){
+        res.status(400);
+        throw new Error("There is no courses found");
+    }
+    let moneyPaid = 0;
+    let moneyToPay = 0;
+    courses.forEach( course => {
+        moneyPaid += course.moneyPaid;
+        moneyToPay += course.toPay;
+    } );
+    const data = courses;
+    data.forEach( course => {
+        course.courseProgress = progressPerentage(course.startDate, course.endDate);
+    })
+    res.status(200).json({moneyPaid, moneyToPay, total: moneyPaid+moneyToPay, courses: data});
+});
+
 // Get course progress percentage function
 const progressPerentage = (startDate, endDate) => {
     const start = startDate.getTime();
@@ -220,7 +244,6 @@ const progressPerentage = (startDate, endDate) => {
     return (progress < 0 ? 0 : progress) ;
 }
 
-
 module.exports = { 
     getAllCourses,
     addCourse, 
@@ -228,5 +251,6 @@ module.exports = {
     updataCourse, 
     deleteCourse,
     frequentlyVisited,
-    recommended 
+    recommended,
+    moneyData 
 };
