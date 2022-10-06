@@ -38,7 +38,16 @@ const courseSchema = mongoose.Schema({
         default: []
     },
     enrolledStudents: {
-        type: [{type: mongoose.Schema.Types.ObjectId, ref: 'Student'}],
+        type: [{
+            email: {
+                type: String,
+                unique: true,
+            },
+            progress: {
+                type: String,
+                unique: true,
+            }
+        }],
         default: []
     },
     partner: {
@@ -70,6 +79,12 @@ const courseSchema = mongoose.Schema({
     visited: {
         type: [Date],
         default: []
+    },
+    courseProgress : {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: 0
     }
 });
 

@@ -30,19 +30,23 @@ const studentSchema = mongoose.Schema({
     specialty: {
         type: String,
         required: [true, "Please add student specialty"],
-        enum: ["frontend", "backend"]
     },
     joinedCourses: {
         type: [{
-            courseID: {
-                type: mongoose.Schema.Types.ObjectId,
+            courseCode: {
+                type: String,
                 required: true,
                 unique: true
             }, 
             progress: {
                 type: String,
-                enum: ["waiting response", "Criteria Not Met", "Passed Interview", "Failed Interview", "Invited", "attended"],
+                enum: ["waiting response", "Criteria Not Met", "Passed Interview", "Failed Interview", "In progress", "attended"],
                 default: "waiting response"
+            },
+            quiz: {
+                type: Number,
+                min: 0,
+                max: 10
             }
         }]
     },

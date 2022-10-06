@@ -1,12 +1,18 @@
 const asyncHandler = require('express-async-handler');
+const { exists } = require('../models/courseModel');
 const Course = require('../models/courseModel');
+const Student = require('../models/studentModel');
 
 // @desc   Get all courses data
 // @route  GET /api/courses/
 // @access Public
 const getAllCourses = asyncHandler(async (req, res) => {
-    const course = await Course.find({});
-    res.status(200).json(course);
+    const courses = await Course.find({});
+    const data = courses;
+    data.forEach( course => {
+        course.courseProgress = progressPerentage(course.startDate, course.endDate);
+    });
+    res.status(200).json(data);
 });
 
 // @desc   Add new course
@@ -24,7 +30,6 @@ const addCourse = asyncHandler(async (req, res) => {
         desc,
         category,
         skills,
-        prerequisiteSkills,
         prerequisiteCourses,
         partner,
         moneyPaid,
@@ -39,6 +44,12 @@ const addCourse = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('Course already exists');
     }
+    // pre skills
+    const preSkills = [];
+    for(let i=0 ; i < prerequisiteCourses.length ; i++ ){
+        const c = await Course.findOne({code: prerequisiteCourses[i]});
+        preSkills.push(...c.skills);
+    }
     // create course
     const course = await Course.create({
         admin: req.admin.id,
@@ -47,7 +58,7 @@ const addCourse = asyncHandler(async (req, res) => {
         desc,
         category,
         skills,
-        prerequisiteSkills,
+        prerequisiteSkills: preSkills,
         prerequisiteCourses,
         partner,
         moneyPaid,
@@ -55,6 +66,7 @@ const addCourse = asyncHandler(async (req, res) => {
         location,
         startDate,
         endDate,
+        courseProgress: 0
     });
     if(course){
         res.status(200).json({
@@ -73,7 +85,8 @@ const addCourse = asyncHandler(async (req, res) => {
             location: course.location,
             startDate: course.startDate,
             endDate: course.endDate,
-            visited: []
+            visited: [],
+            courseProgress: progressPerentage(course.startDate, course.endDate)
         });
     } else {
         res.status(400);
@@ -91,7 +104,9 @@ const getCourse = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('Course does not exists');
     }
-    res.status(200).json(course);
+    const data = course;
+    data.courseProgress = progressPerentage(course.startDate, course.endDate);
+    res.status(200).json(data);
 });
 
 // @desc   Update course data
@@ -146,8 +161,64 @@ const frequentlyVisited = asyncHandler(async (req, res) => {
 // @route  GET /api/courses/recommended
 // @access Public
 const recommended = asyncHandler(async (req, res) => {
-
+    const FRONTEND = ["CS111", "FR111", "FR112", "FR113"];
+    const BACKEND = ["CS111", "BK111", "BK112", "BK113"];
+    const student = await Student.findById(req.params.id);
+    const courses = student.specialty === "Frontend" ? FRONTEND : BACKEND;
+    const joined = student.joinedCourses.map( c => c.courseCode);
+    const notJoinedCourses = courses.filter( course => !joined.includes(course));
+    // check if the student finished all his specialty courses
+    if(notJoinedCourses.length === 0) {
+        res.status(400);
+        throw new Error("Student has finished all his specialty courses");
+    }
+    const lastCourse = await Course.findOne({code: student.joinedCourses[joined.length -1].courseCode});
+    const nextCourse = await Course.findOne({code: notJoinedCourses[0]});
+    // New student
+    if(student.joinedCourses.length === 0) {
+        const course = await Course.findOne({code: "CS111"});
+        res.status(200).json(course);
+        return
+    }
+    // Intersecting courses
+    if((student.joinedCourses[joined.length -1].progress) !== 'attended'&& 
+    (nextCourse.startDate).getTime() < (lastCourse.endDate).getTime() ) {
+        res.status(400);
+        throw new Error("Student is attending a course intersecting with the expected next course.");
+    }
+    // check for last course quiz
+    if(student.joinedCourses[joined.length -1].quiz === null ) {
+        res.status(200).json({
+            message: "You need to pass last course exam",
+            course: lastCourse
+        })
+        return
+    }
+    // Check if the user deserves
+    if(student.joinedCourses[joined.length -1].quiz < 5 ) {
+        res.status(200).json({
+            message: "You need to re-check last course",
+            course: lastCourse
+        })
+        return
+    }
+    // upcoming recommended course
+    if(student.joinedCourses[joined.length -1].quiz >= 5 && student.joinedCourses[joined.length -1].progress === "attended") {
+        res.status(200).json(nextCourse);
+        return
+    }
 });
+
+// Get course progress percentage function
+const progressPerentage = (startDate, endDate) => {
+    const start = startDate.getTime();
+    const end = endDate.getTime();
+    const now = new Date();
+    const totalDays = (end - start) /1000 /60/60/24;
+    const daysLeft = (end - now.getTime()) /1000 /60/60/24;
+    const progress = parseInt(((totalDays - daysLeft) / totalDays) * 100);
+    return (progress < 0 ? 0 : progress) ;
+}
 
 
 module.exports = { 
