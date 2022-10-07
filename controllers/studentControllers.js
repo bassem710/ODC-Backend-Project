@@ -1,6 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const Student = require("../models/studentModel");
-const bcrypt = require('bcryptjs')
+const bcrypt = require("bcryptjs");
 const Course = require("../models/courseModel");
 
 // @desc   Get all students
@@ -12,10 +12,12 @@ const getStudents = asyncHandler(async (req, res) => {
         req.admin.authority !== "owner"
     ) {
         res.status(400);
-        throw new Error("Not authorized to view admins data");
+        throw new Error("Not authorized to view students data");
     }
-    if(req.body.course){
-        const students = await Student.find({joinedCourses: {$elemMatch: {courseCode: req.body.course}}}).select('-password');
+    if (req.body.course) {
+        const students = await Student.find({
+            joinedCourses: { $elemMatch: { courseCode: req.body.course } },
+        }).select("-password");
         res.status(200).json(students);
         return;
     }
@@ -32,7 +34,7 @@ const getOneStudent = asyncHandler(async (req, res) => {
         req.admin.authority !== "owner"
     ) {
         res.status(400);
-        throw new Error("Not authorized to view admins data");
+        throw new Error("Not authorized to view student data");
     }
     const students = await Student.findById(req.params.id);
     res.status(200).json(students);
@@ -58,18 +60,25 @@ const addStudent = asyncHandler(async (req, res) => {
     if (studentExists) {
         throw new Error("Studdent already exist");
     }
-    // joined courses
-    const joinedC = [];
     // skills
     const skills = [];
     // joined courses loop
-    for (let i=0 ; i<joinedCourses.length; i++) {
-        const current = await Course.findOne({code: joinedCourses[i]});
-        if(progress[i] === "attended") {
+    for (let i = 0; i < joinedCourses.length; i++) {
+        const current = await Course.findOne({
+            code: joinedCourses[i].courseCode,
+        });
+        if (joinedCourses[i].progress === "attended") {
             skills.push(...current.skills);
         }
-        joinedC.push({courseCode: joinedCourses[i], progress: progress[i]});
-        await Course.findOneAndUpdate({code: joinedCourses[i]}, {enrolledStudents: {email: email, progress: progress[i]}});
+        await Course.findOneAndUpdate(
+            { code: joinedCourses[i].courseCode },
+            {
+                enrolledStudents: {
+                    email: email,
+                    progress: joinedCourses[i].progress,
+                },
+            }
+        );
     }
     // Hash password
     const salt = await bcrypt.genSalt(10);
@@ -83,7 +92,7 @@ const addStudent = asyncHandler(async (req, res) => {
         password: hashedPassword,
         gender,
         specialty,
-        joinedCourses: joinedC,
+        joinedCourses,
         skills,
     });
     if (student) {
@@ -104,4 +113,75 @@ const addStudent = asyncHandler(async (req, res) => {
     }
 });
 
-module.exports = { getStudents, getOneStudent, addStudent };
+// @desc   Get top students in specific specialty
+// @route  GET /api/students/top
+// @access Private
+const topStudents = asyncHandler(async (req, res) => {
+    // check for admin's role
+    if (
+        req.admin.authority !== "owner" &&
+        req.admin.authority !== "super admin" &&
+        req.admin.authority !== "admin" &&
+        req.admin.authority !== "viewer"
+    ) {
+        res.status(400);
+        throw new Error("Not authorized to view students data");
+    }
+    // check for top number
+    if (req.body.top <= 0 || req.body.top > 10) {
+        res.status(400);
+        throw new Erro("Enter number from 1 to 10 in top field");
+    }
+    // check for req.body.specialty
+    if (!req.body.specialty) {
+        res.status(400);
+        throw new Error("Please send specialty type");
+    }
+    // get students
+    const specStudents = await Student.find(
+        { specialty: req.body.specialty },
+        "-password"
+    )
+        .sort([["joinedCourses", -1]])
+        .limit(50);
+    // check for returned data
+    if (!specStudents) {
+        res.status(400);
+        throw new Error("Invalid students data");
+    }
+    let coursesFilter = specStudents;
+    // first check (courses, quizes and courses)
+    if (req.body.courses) {
+        coursesFilter = [];
+        let reqCourses = req.body.courses;
+        specStudents.forEach((std) => {
+            const jc = std.joinedCourses.map((c) =>
+                c.quiz > 1 ? c.courseCode : null
+            );
+            let remainingCourses = reqCourses.filter((c) => !jc.includes(c));
+            if (remainingCourses.length === 0) {
+                coursesFilter.push(std);
+            }
+        });
+    }
+    // second check (skills)
+    let skillsFilter = coursesFilter;
+    if (req.body.skills) {
+        let reqSkills = req.body.skills;
+        skillsFilter = skillsFilter.filter((std) => {
+            const skills = std.skills;
+            const remainingSkills = reqSkills.filter(
+                (s) => !skills.includes(s)
+            );
+            return remainingSkills.length === 0 ? true : false;
+        });
+    }
+    // control number of returned students
+    const num = req.body.top || 10;
+    const top = skillsFilter.filter((std, index) =>
+        index < num ? true : false
+    );
+    res.status(200).json(top);
+});
+
+module.exports = { getStudents, getOneStudent, addStudent, topStudents };
