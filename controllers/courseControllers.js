@@ -151,6 +151,25 @@ const updataCourse = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error('Course does not exists');
     }
+    // check if one side of the money data exists
+    if((req.body.moneyPaid && !req.body.toPay) || (!req.body.moneyPaid && req.body.toPay)){
+        res.status(400);
+        throw new Error("Cannot change one side of money data");
+    }
+    // update money data
+    if(req.body.moneyPaid && req.body.toPay) {
+        const partner = await Partner.findOne({name: course.partner});
+        const moneyUpdated = await Partner.findOneAndUpdate({name: course.partner}, 
+            {
+                moneyPaid: (partner.moneyPaid - course.moneyPaid + parseInt(req.body.moneyPaid)),
+                moneyToPay: (partner.moneyToPay - course.toPay + parseInt(req.body.toPay)),
+            })
+        if(!moneyUpdated){
+            res.status(400);
+            throw new Error("Money data couldn't update");
+        }
+    }
+    // update course
     await Course.findByIdAndUpdate(req.params.id, req.body);
     res.status(200).json(await Course.findById(req.params.id));
 });
@@ -169,6 +188,11 @@ const deleteCourse = asyncHandler(async (req, res) => {
     if(!course){
         res.status(400);
         throw new Error('Course does not exists');
+    }
+    // check for money not paid  
+    if(course.toPay !== 0){
+        res.status(400);
+        throw new Error("Pay course money to delete it");
     }
     await Course.remove();
     res.status(200).json({
