@@ -46,7 +46,12 @@ const studentSchema = mongoose.Schema({
             quiz: {
                 type: Number,
                 min: 0,
-                max: 10
+                max: 100
+            },
+            project: {
+                type: Number,
+                min: 0,
+                max: 100
             }
         }]
     },
