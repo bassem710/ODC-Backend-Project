@@ -244,8 +244,8 @@ const recommended = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error("Student has finished all his specialty courses");
     }
-    const lastCourse = await Course.findOne({code: student.joinedCourses[joined.length -1].courseCode});
-    const nextCourse = await Course.findOne({code: notJoinedCourses[0]});
+    const lastCourse = await Course.findOne({code: student.joinedCourses[joined.length -1].courseCode}).select("code name desc location startDate endDate");
+    const nextCourse = await Course.findOne({code: notJoinedCourses[0]}).select("code name desc location startDate endDate");
     // New student
     if(student.joinedCourses.length === 0) {
         const course = await Course.findOne({code: "CS111"});
