@@ -5,7 +5,6 @@ const { protect } = require('../middlewares/authMiddleware');
 
 // Courses APIs
 router.route('/').get(getAllCourses).post(protect, addCourse);
-router.route('/frequently-visited').get(frequentlyVisited);
 router.route('/recommended/:id').get(recommended);
 router.route('/money').get(protect, moneyData);
 router.route('/:id').get(getCourse).patch(protect, updataCourse).delete(protect, deleteCourse);

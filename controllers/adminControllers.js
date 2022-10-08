@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const asyncHandler = require('express-async-handler');
+const bcrypt = require('bcryptjs');
 const Admin = require('../models/adminModel');
+const { generateToken } = require('../middlewares/authMiddleware');
 
 // @desc   Get admin data
 // @route  GET /api/admins/my-data
@@ -17,6 +17,11 @@ const loginAdmin = asyncHandler(async (req, res) => {
     const { username, password } = req.body;
     // Check for admin username
     const admin = await Admin.findOne({username});
+    // check if is not disabled
+    if(admin.disabled) {
+        res.status(400);
+        throw new Error("Admin is disabled by ODC super admins");
+    }
     if(admin && (await bcrypt.compare(password, admin.password))){
         res.status(201).json({
             _id: admin.id,
@@ -41,6 +46,11 @@ const getAdmin = asyncHandler(async (req, res) => {
         throw new Error('Not authorized to view admins data');
     }
     const data = await Admin.findById(req.params.id);
+    // check for admin data
+    if(!data) {
+        res.status(400);
+        throw new Error("Invalid admin data");
+    }
     res.status(200).json(data);
 });
 
@@ -54,6 +64,11 @@ const adminsData = asyncHandler(async (req, res) => {
     }
     // DB query returns all admins data (not including the logged in admin )
     const data = await Admin.find({ _id: { $ne : req.admin.id }}).select('-password');
+    // check for admins data
+    if(!data) {
+        res.status(400);
+        throw new Error("Invalid admins data");
+    }
     res.status(200).json(data);
 });
 
@@ -82,6 +97,7 @@ const addAdmin = asyncHandler(async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
     // Create admin 
     const admin = await Admin.create({
+        disabled: false,
         authority,
         firstName,
         lastName,
@@ -91,6 +107,7 @@ const addAdmin = asyncHandler(async (req, res) => {
     if(admin){
         res.status(201).json({
             _id: admin.id,
+            disabled: false,
             authority: admin.authority,
             firstName: admin.firstName,
             lastName: admin.lastName,
@@ -153,21 +170,23 @@ const deleteAdmin = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error("Not authorized to delete super admin acoount")
     }
+    // check if the admin is already disabled
+    if(admin.disabled === true){
+        res.status(400);
+        throw new Error("Already disabled");
+    }
     // check for admin
     if(!admin) {
         res.status(400);
         throw new Error("Admin doesn't exists");
     }
-    await admin.remove();
-    res.status(200).json({message: "Admin deleted", _id: req.params.id})
+    const disabled = await admin.update({disabled: true});
+    if(!disabled){
+        res.status(400);
+        throw new Error("Couldn't disable the admin");
+    }
+    res.status(200).json({message: "Admin disabled", id: id})
 });
-
-// Generate JWT Token
-const generateToken = id => {
-    return  jwt.sign({id}, process.env.JWT_SECRET, {
-        expiresIn: '1d'
-    });
-}
 
 module.exports = { 
     myData, 

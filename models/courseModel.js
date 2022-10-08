@@ -1,10 +1,15 @@
 const mongoose = require('mongoose');
 
+
 const courseSchema = mongoose.Schema({
     admin: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: [true, "Please add admin's ID"],
+        type: String,
+        required: [true, "Please add admin's username"],
         ref: 'Admin' 
+    },
+    disabled: {
+        type: Boolean,
+        default: false
     },
     code:{
         type: String,
@@ -30,11 +35,17 @@ const courseSchema = mongoose.Schema({
         required: [true, "Please add course skills"]
     },
     prerequisiteSkills:{
-        type: Array,
+        type: [{
+            type: String,
+            unique: true
+        }],
         default: []
     },
     prerequisiteCourses:{
-        type: Array,
+        type: [{
+            type: String,
+            unique: true
+        }],
         default: []
     },
     enrolledStudents: {

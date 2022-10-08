@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const adminSchema = mongoose.Schema({
+    disabled: {
+        type: Boolean,
+        default: false
+    },
     authority: {
         type: String,
         required: [true, 'Please add a admin authority'],

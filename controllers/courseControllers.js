@@ -1,15 +1,18 @@
 const asyncHandler = require('express-async-handler');
-const { exists, findByIdAndUpdate, findOneAndUpdate, find } = require('../models/courseModel');
 const Course = require('../models/courseModel');
 const Student = require('../models/studentModel');
 const Partner = require('../models/partnerModel');
-const e = require('express');
 
 // @desc   Get all courses data
 // @route  GET /api/courses/
 // @access Public
 const getAllCourses = asyncHandler(async (req, res) => {
     const courses = await Course.find({});
+    // check for courses data
+    if( !courses) {
+        res.status(400);
+        throw new Error("Invalid courses data");
+    }
     const data = courses;
     data.forEach( course => {
         course.courseProgress = progressPerentage(course.startDate, course.endDate);
@@ -54,7 +57,7 @@ const addCourse = asyncHandler(async (req, res) => {
     }
     // create course
     const course = await Course.create({
-        admin: req.admin.id,
+        admin: req.admin.username,
         code,
         name,
         desc,
@@ -127,6 +130,7 @@ const addCourse = asyncHandler(async (req, res) => {
 const getCourse = asyncHandler(async (req, res) => {
     // check if course exists
     const course = await Course.findById(req.params.id);
+    // check for courses data
     if(!course){
         res.status(400);
         throw new Error('Course does not exists');
@@ -170,8 +174,19 @@ const updataCourse = asyncHandler(async (req, res) => {
         }
     }
     // update course
-    await Course.findByIdAndUpdate(req.params.id, req.body);
-    res.status(200).json(await Course.findById(req.params.id));
+    const updatedCourse = await Course.findByIdAndUpdate(req.params.id, req.body);
+    // check for updated data
+    if(!updatedCourse) {
+        res.status(400);
+        throw new Error("Course couldn't update");
+    }
+    const newData = await Course.findById(req.params.id);
+    // check for course data
+    if(!newData) {
+        res.status(400);
+        throw new Error("Invalid course data");
+    }
+    res.status(200).json(newData);
 });
 
 // @desc   Delete course
@@ -191,21 +206,27 @@ const deleteCourse = asyncHandler(async (req, res) => {
     }
     // check for money not paid  
     if(course.toPay !== 0){
-        res.status(400);
-        throw new Error("Pay course money to delete it");
+        // disable course
+        const disabled = await Course.findByIdAndUpdate(req.params.id, {disabled: true});
+        // check for disabled course
+        if(!disabled){
+            res.status(400);
+            throw new Error("Couldn't disable course");
+        }
+        res.status(200).json({message: "Course is only disabled due to unpaid money", id: req.params.id});
+        return
     }
-    await Course.remove();
+    // delete course
+    const deleted = await Course.findByIdAndDelete(req.params.id);
+    // check for deleted course
+    if(!deleted){
+        res.status(400);
+        throw new Error("Couldn't delete course");
+    }
     res.status(200).json({
         message: "Course deleted",
         id: req.params.id
     });
-});
-
-// @desc   Get frequently visited course
-// @route  GET /api/courses/frequently-visited
-// @access Public
-const frequentlyVisited = asyncHandler(async (req, res) => {
-
 });
 
 // @desc   Get recommended courses based on logged student
@@ -296,7 +317,9 @@ const progressPerentage = (startDate, endDate) => {
     const totalDays = (end - start) /1000 /60/60/24;
     const daysLeft = (end - now.getTime()) /1000 /60/60/24;
     const progress = parseInt(((totalDays - daysLeft) / totalDays) * 100);
-    return (progress < 0 ? 0 : progress) ;
+    if ( progress < 0 ) return 0;
+    if( progress > 100 ) return 100;
+    return progress;
 }
 
 module.exports = { 
@@ -305,7 +328,6 @@ module.exports = {
     getCourse, 
     updataCourse, 
     deleteCourse,
-    frequentlyVisited,
     recommended,
     moneyData 
 };

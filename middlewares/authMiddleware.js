@@ -24,4 +24,11 @@ const protect = asyncHandler(async (req, res, next) => {
     }
 });
 
-module.exports = { protect };
+// Generate JWT Token
+const generateToken = id => {
+    return  jwt.sign({id}, process.env.JWT_SECRET, {
+        expiresIn: '1d'
+    });
+}
+
+module.exports = { protect, generateToken };

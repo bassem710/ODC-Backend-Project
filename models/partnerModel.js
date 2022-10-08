@@ -10,9 +10,9 @@ const partnerSchema = mongoose.Schema({
         type: [{
             type: mongoose.Schema.Types.ObjectId,
             required: [true, "Please add course ID"],
+            unique: true,
             ref: 'Course' 
         }],
-        unique: true,
         default: []
     },
     moneyPaid: {

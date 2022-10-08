@@ -18,10 +18,18 @@ const getStudents = asyncHandler(async (req, res) => {
         const students = await Student.find({
             joinedCourses: { $elemMatch: { courseCode: req.body.course } },
         }).select("-password");
+        if(!students){
+            res.status(400);
+            throw new Error("Invalid students data");
+        }
         res.status(200).json(students);
         return;
     }
-    const students = await Student.find({});
+    const students = await Student.find({}).select("-password");
+    if(!students){
+        res.status(400);
+        throw new Error("Invalid students data");
+    }
     res.status(200).json(students);
 });
 
@@ -36,8 +44,12 @@ const getOneStudent = asyncHandler(async (req, res) => {
         res.status(400);
         throw new Error("Not authorized to view student data");
     }
-    const students = await Student.findById(req.params.id);
-    res.status(200).json(students);
+    const student = await Student.findById(req.params.id).select("-password");
+    if(!student){
+        res.status(400);
+        throw new Error("Invalid students data");
+    }
+    res.status(200).json(student);
 });
 
 // @desc   Add one student
@@ -58,7 +70,8 @@ const addStudent = asyncHandler(async (req, res) => {
     // check for student
     const studentExists = await Student.findOne({ email: email });
     if (studentExists) {
-        throw new Error("Studdent already exist");
+        res.status(400);
+        throw new Error("Student already exist");
     }
     // skills
     const skills = [];
@@ -70,15 +83,21 @@ const addStudent = asyncHandler(async (req, res) => {
         if (joinedCourses[i].progress === "attended") {
             skills.push(...current.skills);
         }
-        await Course.findOneAndUpdate(
+        const updatedCourse = await Course.findOneAndUpdate(
             { code: joinedCourses[i].courseCode },
             {
-                enrolledStudents: {
-                    email: email,
-                    progress: joinedCourses[i].progress,
-                },
-            }
-        );
+                $push:
+                { enrolledStudents:
+                    {
+                        email: email,
+                        progress: joinedCourses[i].progress
+                    }
+                }
+            });
+        if(!updatedCourse){
+            res.status(400);
+            throw new Error("Couldn't update course data (enrolled students)");
+        }
     }
     // Hash password
     const salt = await bcrypt.genSalt(10);

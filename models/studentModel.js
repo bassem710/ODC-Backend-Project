@@ -56,7 +56,10 @@ const studentSchema = mongoose.Schema({
         }]
     },
     skills: {
-        type: [String],
+        type: [{
+            type: String,
+            unique: true
+        }],
         default: []
     }
 }, {timestamps: true});
