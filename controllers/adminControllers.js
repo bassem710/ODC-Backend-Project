@@ -1,7 +1,7 @@
-const asyncHandler = require('express-async-handler');
-const bcrypt = require('bcryptjs');
-const Admin = require('../models/adminModel');
-const { generateToken } = require('../middlewares/authMiddleware');
+const asyncHandler = require("express-async-handler");
+const bcrypt = require("bcryptjs");
+const Admin = require("../models/adminModel");
+const { generateToken } = require("../middlewares/authMiddleware");
 
 // @desc   Get admin data
 // @route  GET /api/admins/my-data
@@ -16,24 +16,24 @@ const myData = asyncHandler(async (req, res) => {
 const loginAdmin = asyncHandler(async (req, res) => {
     const { username, password } = req.body;
     // Check for admin username
-    const admin = await Admin.findOne({username});
+    const admin = await Admin.findOne({ username });
     // check if is not disabled
-    if(admin.disabled) {
+    if (admin.disabled) {
         res.status(400);
         throw new Error("Admin is disabled by ODC super admins");
     }
-    if(admin && (await bcrypt.compare(password, admin.password))){
+    if (admin && (await bcrypt.compare(password, admin.password))) {
         res.status(201).json({
             _id: admin.id,
             authority: admin.authority,
             firstName: admin.firstName,
             lastName: admin.lastName,
             username: admin.username,
-            token: generateToken(admin._id)
+            token: generateToken(admin._id),
         });
     } else {
         res.status(400);
-        throw new Error('Invalid credentials');
+        throw new Error("Invalid credentials");
     }
 });
 
@@ -41,13 +41,16 @@ const loginAdmin = asyncHandler(async (req, res) => {
 // @route  GET /api/admins/:id
 // @access Private (Super admins and owner only)
 const getAdmin = asyncHandler(async (req, res) => {
-    if(req.admin.authority !== "super admin" && req.admin.authority !== "owner") {
+    if (
+        req.admin.authority !== "super admin" &&
+        req.admin.authority !== "owner"
+    ) {
         res.status(400);
-        throw new Error('Not authorized to view admins data');
+        throw new Error("Not authorized to view admins data");
     }
     const data = await Admin.findById(req.params.id);
     // check for admin data
-    if(!data) {
+    if (!data) {
         res.status(400);
         throw new Error("Invalid admin data");
     }
@@ -58,14 +61,19 @@ const getAdmin = asyncHandler(async (req, res) => {
 // @route  GET /api/admins
 // @access Private (Super admins and owner only)
 const adminsData = asyncHandler(async (req, res) => {
-    if(req.admin.authority !== "super admin" && req.admin.authority !== "owner") {
+    if (
+        req.admin.authority !== "super admin" &&
+        req.admin.authority !== "owner"
+    ) {
         res.status(400);
-        throw new Error('Not authorized to view admins data');
+        throw new Error("Not authorized to view admins data");
     }
     // DB query returns all admins data (not including the logged in admin )
-    const data = await Admin.find({ _id: { $ne : req.admin.id }}).select('-password');
+    const data = await Admin.find({ _id: { $ne: req.admin.id } }).select(
+        "-password"
+    );
     // check for admins data
-    if(!data) {
+    if (!data) {
         res.status(400);
         throw new Error("Invalid admins data");
     }
@@ -77,34 +85,37 @@ const adminsData = asyncHandler(async (req, res) => {
 // @access Private (Super admins and owner only)
 const addAdmin = asyncHandler(async (req, res) => {
     const { authority, firstName, lastName, username, password } = req.body;
-    if(!authority || !firstName || !lastName || !username || !password) {
+    if (!authority || !firstName || !lastName || !username || !password) {
         res.status(400);
-        throw new Error('Please add all fields');
+        throw new Error("Please add all fields");
     }
     // check for admin's role
-    if(req.admin.authority !== 'super admin' && req.admin.authority !== 'owner') {
+    if (
+        req.admin.authority !== "super admin" &&
+        req.admin.authority !== "owner"
+    ) {
         res.status(400);
-        throw new Error('Not authorized to add new admin');
+        throw new Error("Not authorized to add new admin");
     }
     // check if admin exists
-    const adminExists = await Admin.findOne({username});
-    if(adminExists) {
+    const adminExists = await Admin.findOne({ username });
+    if (adminExists) {
         res.status(400);
         throw new Error("Admin already exists");
     }
     // Hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    // Create admin 
+    // Create admin
     const admin = await Admin.create({
         disabled: false,
         authority,
         firstName,
         lastName,
         username,
-        password: hashedPassword
+        password: hashedPassword,
     });
-    if(admin){
+    if (admin) {
         res.status(201).json({
             _id: admin.id,
             disabled: false,
@@ -112,11 +123,11 @@ const addAdmin = asyncHandler(async (req, res) => {
             firstName: admin.firstName,
             lastName: admin.lastName,
             username: admin.username,
-            token: generateToken(admin._id)
+            token: generateToken(admin._id),
         });
     } else {
         res.status(400);
-        throw new Error('Invalid admin data');
+        throw new Error("Invalid admin data");
     }
 });
 
@@ -125,23 +136,27 @@ const addAdmin = asyncHandler(async (req, res) => {
 // @access Private (Super admins and owner only)
 const updateAdmin = asyncHandler(async (req, res) => {
     // check for admin's role
-    if(req.admin.authority !== 'super admin' && req.admin.authority !== 'owner' && req.admin.id !== req.params.id) {
+    if (
+        req.admin.authority !== "super admin" &&
+        req.admin.authority !== "owner" &&
+        req.admin.id !== req.params.id
+    ) {
         res.status(400);
-        throw new Error('Not authorized to update admin data');
+        throw new Error("Not authorized to update admin data");
     }
     const admin = await Admin.findById(req.params.id);
     // check for admin data
-    if(!admin){
+    if (!admin) {
         res.status(400);
-        throw new Error('Admin not found');
+        throw new Error("Admin not found");
     }
     // check for both levels
-    if(req.admin.authority !== "owner" && admin.authority === "super admin"){
+    if (req.admin.authority !== "owner" && admin.authority === "super admin") {
         res.status(400);
-        throw new Error("Not authorized to update super admin acoount")
+        throw new Error("Not authorized to update super admin acoount");
     }
     // check for updated data
-    if((req.admin.id === req.params.id) && req.body.authority){
+    if (req.admin.id === req.params.id && req.body.authority) {
         res.status(400);
         throw new Error("Not authorized to change admin's role");
     }
@@ -154,46 +169,49 @@ const updateAdmin = asyncHandler(async (req, res) => {
 // @access Private (Super admins and owner only)
 const deleteAdmin = asyncHandler(async (req, res) => {
     // check for admin's role
-    if(req.admin.authority !== 'super admin' && req.admin.authority !== 'owner') {
+    if (
+        req.admin.authority !== "super admin" &&
+        req.admin.authority !== "owner"
+    ) {
         res.status(400);
-        throw new Error('Not authorized to delete admin account');
+        throw new Error("Not authorized to delete admin account");
     }
     const { id } = req.params;
     const admin = await Admin.findById(id);
     // check for authority level
-    if(admin.authority === "owner"){
+    if (admin.authority === "owner") {
         res.status(400);
         throw new Error("Not authorized to delete owner account");
     }
     // check for both levels
-    if(req.admin.authority !== "owner" && admin.authority === "super admin"){
+    if (req.admin.authority !== "owner" && admin.authority === "super admin") {
         res.status(400);
-        throw new Error("Not authorized to delete super admin acoount")
+        throw new Error("Not authorized to delete super admin acoount");
     }
     // check if the admin is already disabled
-    if(admin.disabled === true){
+    if (admin.disabled === true) {
         res.status(400);
         throw new Error("Already disabled");
     }
     // check for admin
-    if(!admin) {
+    if (!admin) {
         res.status(400);
         throw new Error("Admin doesn't exists");
     }
-    const disabled = await admin.update({disabled: true});
-    if(!disabled){
+    const disabled = await admin.update({ disabled: true });
+    if (!disabled) {
         res.status(400);
         throw new Error("Couldn't disable the admin");
     }
-    res.status(200).json({message: "Admin disabled", id: id})
+    res.status(200).json({ message: "Admin disabled", id: id });
 });
 
-module.exports = { 
-    myData, 
-    loginAdmin, 
-    addAdmin, 
+module.exports = {
+    myData,
+    loginAdmin,
+    addAdmin,
     getAdmin,
-    adminsData, 
-    deleteAdmin, 
-    updateAdmin
+    adminsData,
+    deleteAdmin,
+    updateAdmin,
 };

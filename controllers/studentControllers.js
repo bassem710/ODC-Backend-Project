@@ -18,7 +18,7 @@ const getStudents = asyncHandler(async (req, res) => {
         const students = await Student.find({
             joinedCourses: { $elemMatch: { courseCode: req.body.course } },
         }).select("-password");
-        if(!students){
+        if (!students) {
             res.status(400);
             throw new Error("Invalid students data");
         }
@@ -26,7 +26,7 @@ const getStudents = asyncHandler(async (req, res) => {
         return;
     }
     const students = await Student.find({}).select("-password");
-    if(!students){
+    if (!students) {
         res.status(400);
         throw new Error("Invalid students data");
     }
@@ -45,7 +45,7 @@ const getOneStudent = asyncHandler(async (req, res) => {
         throw new Error("Not authorized to view student data");
     }
     const student = await Student.findById(req.params.id).select("-password");
-    if(!student){
+    if (!student) {
         res.status(400);
         throw new Error("Invalid students data");
     }
@@ -86,15 +86,15 @@ const addStudent = asyncHandler(async (req, res) => {
         const updatedCourse = await Course.findOneAndUpdate(
             { code: joinedCourses[i].courseCode },
             {
-                $push:
-                { enrolledStudents:
-                    {
+                $push: {
+                    enrolledStudents: {
                         email: email,
-                        progress: joinedCourses[i].progress
-                    }
-                }
-            });
-        if(!updatedCourse){
+                        progress: joinedCourses[i].progress,
+                    },
+                },
+            }
+        );
+        if (!updatedCourse) {
             res.status(400);
             throw new Error("Couldn't update course data (enrolled students)");
         }
@@ -175,7 +175,7 @@ const topStudents = asyncHandler(async (req, res) => {
         let reqCourses = req.body.courses;
         specStudents.forEach((std) => {
             const jc = std.joinedCourses.map((c) =>
-                (c.quiz > 70 && c.project > 70) ? c.courseCode : null
+                c.quiz > 70 && c.project > 70 ? c.courseCode : null
             );
             let remainingCourses = reqCourses.filter((c) => !jc.includes(c));
             if (remainingCourses.length === 0) {
