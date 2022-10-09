@@ -175,7 +175,7 @@ const topStudents = asyncHandler(async (req, res) => {
         let reqCourses = req.body.courses;
         specStudents.forEach((std) => {
             const jc = std.joinedCourses.map((c) =>
-                c.quiz > 1 ? c.courseCode : null
+                (c.quiz > 70 && c.project > 70) ? c.courseCode : null
             );
             let remainingCourses = reqCourses.filter((c) => !jc.includes(c));
             if (remainingCourses.length === 0) {
