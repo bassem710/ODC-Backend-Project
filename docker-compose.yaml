@@ -1,0 +1,9 @@
+version: '2.15'
+services:
+  odc:
+    build: ./
+    container_name: odc_c
+    ports:
+      - '5000:5000'
+    volumes:
+      - ./:/app
