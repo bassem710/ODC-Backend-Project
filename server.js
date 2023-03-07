@@ -10,20 +10,20 @@ const { errorHandler } = require("./middlewares/errorHandler");
 const connectDB = require("./config/db");
 const port = process.env.PORT || 5000;
 
-connectDB();
-
-const app = express();
-app.use(express.json());
-app.use(cors());
-app.use(express.urlencoded({ extended: false }));
-mongoose.set('strictQuery', true);
-
 Parse.serverURL = process.env.SERVER_URL;
 Parse.initialize(
     process.env.APP_ID,
     process.env.JS_KEY,
     process.env.MASTER_KEY
 );
+
+mongoose.set('strictQuery', true);
+connectDB();
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+app.use(express.urlencoded({ extended: false }));
 
 // Routes
 app.use("/api/admins", require("./routes/adminRoutes"));
