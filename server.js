@@ -1,7 +1,6 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
-const Parse = require('parse/node');
 const mongoose = require("mongoose");
 const path = require("path");
 const colors = require("colors");
@@ -9,13 +8,6 @@ const bodyParser = require("body-parser");
 const { errorHandler } = require("./middlewares/errorHandler");
 const connectDB = require("./config/db");
 const port = process.env.PORT || 5000;
-
-Parse.serverURL = process.env.SERVER_URL;
-Parse.initialize(
-    process.env.APP_ID,
-    process.env.JS_KEY,
-    process.env.MASTER_KEY
-);
 
 mongoose.set('strictQuery', true);
 connectDB();
