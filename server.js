@@ -1,6 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const Parse = require('parse/node');
+const mongoose = require("mongoose");
 const path = require("path");
 const colors = require("colors");
 const bodyParser = require("body-parser");
@@ -14,6 +16,14 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 app.use(express.urlencoded({ extended: false }));
+mongoose.set('strictQuery', true);
+
+Parse.serverURL = process.env.SERVER_URL;
+Parse.initialize(
+    process.env.APP_ID,
+    process.env.JS_KEY,
+    process.env.MASTER_KEY
+);
 
 // Routes
 app.use("/api/admins", require("./routes/adminRoutes"));
