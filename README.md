@@ -1,8 +1,8 @@
 # ODC-Backend-Project
 
-## For testing (Heroku link):
-Link: https://odc-offline-courses-project.herokuapp.com/ \
-Example: https://odc-offline-courses-project.herokuapp.com/api/courses
+## For testing:
+Link: https://odc.onrender.com/ \
+Example: https://odc.onrender.com/api/courses
 
 ## APIs 
 ### Admins
